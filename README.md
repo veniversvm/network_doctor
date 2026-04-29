@@ -50,5 +50,34 @@ of internet problems a connection for an end user.
 ### Ping
 Implement a ping command that point to some ipv4, ipv6, and DNS.
 
+### Tracert
+We need to detect what IP addresses or DNS do not resolver and 
+then make a tracert/traceroute of that resource.
 
+### ipconfig/ifconfig
+For the moment I think that I must use this command to extract 
+the IP of the local router and make a Ping to the equip in order to discard malfunctioning of the hardware.
+
+### nslookup
+If necessary, check the correct translation of the dns and also 
+check the IP addresses returned.
+
+### neststat
+Get the status of used ports at the moment of analisys.
+
+### MAC (probably optional)
+Maybe useful in particular cases.
+
+### arp
+Check IP conflicts in the same network.
+
+### pathping / mtr
+Maybe optional.
+
+### uptime
+Check for drop in performance in case that the pc has much 
+time working (specially Windows).
+
+### ip route
+Check for bad VPN config.
 (README under construction...)
