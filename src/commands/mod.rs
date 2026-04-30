@@ -73,7 +73,7 @@ pub fn ping_extraction(statistics: String) -> Vec<String> {
         }
     }
 
-    return results;
+    results
 }
 
 

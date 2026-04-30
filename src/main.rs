@@ -1,5 +1,4 @@
-mod commands;
-use commands::{ping_command, ping_extraction, extrac_ping_statistics};
+use network_doctor::commands::{ping_command, ping_extraction, extrac_ping_statistics};
 
 fn main() {
     println!("Hello, world!");
