@@ -1,4 +1,4 @@
-use network_doctor::commands::{ping_command, ping_extraction, extrac_ping_statistics};
+use network_doctor::commands::{extrac_ping_statistics, ping_command, ping_extraction};
 
 fn main() {
     println!("Hello, world!");
@@ -7,7 +7,7 @@ fn main() {
     let result = ping_extraction(result);
 
     let statictis = extrac_ping_statistics(&result[1]);
-    
+
     println!("{}", result[0]);
     println!("{}", statictis);
 }

@@ -60,7 +60,6 @@ pub fn ping_command(target_os: String) -> String {
 //////
 //////
 
-
 /// ping_straction returns a Vec[String] of the data
 /// obtained from the ping command.
 ///
@@ -75,7 +74,6 @@ pub fn ping_extraction(statistics: String) -> Vec<String> {
 
     results
 }
-
 
 //////
 //////
@@ -92,7 +90,7 @@ pub fn extrac_ping_statistics(rtt_line: &str) -> String {
     for i in 0..line_values.len() {
         result += &("\n".to_owned() + keys[i] + " - " + line_values[i].trim());
     }
-    
+
     //println!("{result}");
 
     result
