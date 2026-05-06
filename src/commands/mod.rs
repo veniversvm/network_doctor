@@ -11,7 +11,7 @@ type IPDir<'a> = (DomainName<'a>, IPV4<'a>, IPV6<'a>, DNS<'a>);
 //////
 //////
 
-const _ping_routes: [IPDir; 4] = [
+const PING_ROUTES: [IPDir; 4] = [
     ("Google", "8.8.8.8", "2001:4860:4860::8888", "google.com"),
     (
         "Cloudflare",
@@ -32,12 +32,13 @@ const _ping_routes: [IPDir; 4] = [
 //////
 //////
 
-pub fn ping_command(target_os: String) -> String {
+pub fn ping_command(target_os: String, destination: String) -> String {
     let ping = if target_os == "linux" {
-        println!("linux");
+        println!("ping target: {destination}");
+        let ping_arg = format!("ping {destination} -c 4");
         Command::new("sh")
             .arg("-c")
-            .arg("ping 8.8.8.8 -c 4")
+            .arg(ping_arg)
             .output()
             .expect("failed process")
     } else {
@@ -92,6 +93,33 @@ pub fn extrac_ping_statistics(rtt_line: &str) -> String {
     }
 
     //println!("{result}");
+
+    result
+}
+
+//////
+//////
+//////
+
+pub fn dns_resolution() -> String {
+    let mut result: String = String::new();
+
+    for domain in PING_ROUTES {
+        println!("{}", domain.0);
+        for dns_or_ip in [domain.1, domain.2, domain.3] {
+            let ping_result = ping_command(std::env::consts::OS.to_string(), dns_or_ip.to_string());
+            //println!("ping result: {:?}", ping_result);
+            if ping_result.len() == 0 || ping_result.contains("unreachable") {
+                result +=
+                    &(dns_or_ip.to_string() + " for " + domain.0 + " fail" + "\n --------- \n");
+                continue;
+            }
+            let extraction_result = ping_extraction(ping_result);
+            //println!("{:?}", extraction_result);
+            let statistic_result: String = extrac_ping_statistics(&extraction_result[1]);
+            result += &(statistic_result + "\n --------- \n");
+        }
+    }
 
     result
 }
