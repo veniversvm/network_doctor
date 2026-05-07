@@ -80,16 +80,12 @@ pub fn ping_extraction(statistics: String) -> Vec<String> {
 //////
 //////
 
-pub fn extrac_ping_statistics(rtt_line: &str) -> String {
+pub fn extrac_ping_statistics(ping_values: Vec<&str>) -> String {
     let keys: [&str; 4] = ["Most Fast", "Average", "Most Slow", "Mean Deaviation"];
     let mut result: String = "Ping results:\n".to_string();
 
-    let line_split: Vec<_> = rtt_line.split("=").collect();
-
-    let line_values: Vec<_> = line_split[1].split("/").collect();
-
-    for i in 0..line_values.len() {
-        result += &("\n".to_owned() + keys[i] + " - " + line_values[i].trim());
+    for i in 0..ping_values.len() {
+        result += &("\n".to_owned() + keys[i] + " - " + ping_values[i].trim()).replace("ms", "");
     }
 
     //println!("{result}");
@@ -101,24 +97,74 @@ pub fn extrac_ping_statistics(rtt_line: &str) -> String {
 //////
 //////
 
+pub fn extraction_ping_values(rtt_line: &str) -> Vec<&str> {
+    let line_split: Vec<_> = rtt_line.split("=").collect();
+
+    line_split[1].split("/").collect()
+}
+
+//////
+//////
+//////
+
+pub fn clean_value(value: &str) -> f32 {
+    let v = value.replace("ms", "").replace("pipe 2", "");
+
+    //println!("converting {value} *{v}*");
+    v.trim()
+        .parse::<f32>()
+        .expect("conversion to f32 for {value} failed")
+}
+
+//////
+//////
+//////
 pub fn dns_resolution() -> String {
     let mut result: String = String::new();
 
     for domain in PING_ROUTES {
         println!("{}", domain.0);
+
+        result += &(domain.0.to_uppercase() + "\n"); // Append DNS name
+        // acc of ping values
+        let mut fast: f32 = 0.0;
+        let mut average: f32 = 0.0;
+        let mut slow: f32 = 0.0;
+        let mut deviation: f32 = 0.0;
+        let mut i = 0;
+
+        // looping trough dns, ipv4 and ipv6
+        // TODO: make async
         for dns_or_ip in [domain.1, domain.2, domain.3] {
             let ping_result = ping_command(std::env::consts::OS.to_string(), dns_or_ip.to_string());
-            //println!("ping result: {:?}", ping_result);
-            if ping_result.len() == 0 || ping_result.contains("unreachable") {
+
+            // check if ping result
+            if ping_result.is_empty() || ping_result.contains("unreachable") {
                 result +=
                     &(dns_or_ip.to_string() + " for " + domain.0 + " fail" + "\n --------- \n");
                 continue;
             }
+
             let extraction_result = ping_extraction(ping_result);
-            //println!("{:?}", extraction_result);
-            let statistic_result: String = extrac_ping_statistics(&extraction_result[1]);
+            let ping_values = extraction_ping_values(&extraction_result[1]);
+            // println!("Pig values: {:?}", ping_values);
+            fast += clean_value(ping_values[0]);
+            average += clean_value(ping_values[1]);
+            slow += clean_value(ping_values[2]);
+            deviation += clean_value(ping_values[3]);
+            let statistic_result: String = extrac_ping_statistics(ping_values);
             result += &(statistic_result + "\n --------- \n");
+            i += 1;
         }
+        let string = format!(
+            "Avrg Most Fast = {}\nAvrg Average = {}\nAvrg Slow = {}\nAvrg Mean Deviation = {}",
+            (fast / i as f32),
+            (average / i as f32),
+            (slow / i as f32),
+            (deviation / i as f32)
+        );
+        result.push_str(&string);
+        result += "\n --------- \n\n";
     }
 
     result
