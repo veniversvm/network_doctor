@@ -34,7 +34,10 @@ const PING_ROUTES: [IPDir; 4] = [
 
 pub fn ping_command(target_os: String, destination: String) -> String {
     let ping = if target_os == "linux" {
-        println!("ping target: {destination}");
+        println!("\rping target: {destination}");
+        // \x1B[2J: Limpia la pantalla
+        // \x1B[1;1H: Mueve el cursor a la línea 1, columna 1
+        print!("\x1B[2J\x1B[1;1H");
         let ping_arg = format!("ping {destination} -c 4");
         Command::new("sh")
             .arg("-c")
@@ -122,6 +125,12 @@ pub fn clean_value(value: &str) -> f32 {
 pub fn dns_resolution() -> String {
     let mut result: String = String::new();
 
+    let mut avrg_fast: f32 = 0.0;
+    let mut avrg_average: f32 = 0.0;
+    let mut avrg_slow: f32 = 0.0;
+    let mut avrg_deviation: f32 = 0.0;
+    let mut j = 0;
+
     for domain in PING_ROUTES {
         println!("{}", domain.0);
 
@@ -149,15 +158,21 @@ pub fn dns_resolution() -> String {
             let ping_values = extraction_ping_values(&extraction_result[1]);
             // println!("Pig values: {:?}", ping_values);
             fast += clean_value(ping_values[0]);
+            avrg_fast += fast;
             average += clean_value(ping_values[1]);
+            avrg_average += average;
             slow += clean_value(ping_values[2]);
+            avrg_slow += slow;
             deviation += clean_value(ping_values[3]);
+            avrg_deviation += deviation;
             let statistic_result: String = extrac_ping_statistics(ping_values);
             result += &(statistic_result + "\n --------- \n");
             i += 1;
+            j += 1;
         }
         let string = format!(
-            "Avrg Most Fast = {}\nAvrg Average = {}\nAvrg Slow = {}\nAvrg Mean Deviation = {}",
+            "Averages for {}\nAvrg Most Fast = {}\nAvrg Average = {}\nAvrg Slow = {}\nAvrg Mean Deviation = {}",
+            domain.0,
             (fast / i as f32),
             (average / i as f32),
             (slow / i as f32),
@@ -166,6 +181,16 @@ pub fn dns_resolution() -> String {
         result.push_str(&string);
         result += "\n --------- \n\n";
     }
+
+    let string = format!(
+        "Total averages\nAvrg Most Fast = {}\nAvrg Average = {}\nAvrg Slow = {}\nAvrg Mean Deviation = {}",
+        (avrg_fast / j as f32),
+        (avrg_average / j as f32),
+        (avrg_slow / j as f32),
+        (avrg_deviation / j as f32)
+    );
+    result.push_str(&string);
+    result += "\n --------- \n\n";
 
     result
 }
