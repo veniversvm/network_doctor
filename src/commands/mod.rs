@@ -118,6 +118,39 @@ pub fn clean_value(value: &str) -> f32 {
         .parse::<f32>()
         .expect("conversion to f32 for {value} failed")
 }
+//////
+//////
+//////
+
+pub fn packet_analizer(packet_line: &str) -> (u32, u32) {
+    let value: Vec<_> = packet_line.split(",").collect();
+    //println!("{:?}", value);
+
+    let patckets_transmitted: Vec<_> = value[0].split(" ").collect();
+    let patckets_recieve: Vec<_> = value[1].split(" ").collect();
+
+    //println!("{:?}", patckets_recieve);
+    //println!("{:?}", patckets_transmitted);
+
+    let pt = patckets_transmitted[0]
+        .parse::<u32>()
+        .expect("Patcket recieve conversion failed");
+    let pr = patckets_recieve[1]
+        .parse::<u32>()
+        .expect("Packet loss conversion failed");
+
+    //println!("{} {}", pr, pr);
+
+    (pt, pr)
+}
+
+fn calculate_packets_loss(packets_transmitted: u32, packets_recieved: u32) -> f32 {
+    if packets_transmitted == 0 {
+        return 0.0;
+    }
+
+    100.0 - (packets_recieved as f32 / packets_transmitted as f32) * 100.0
+}
 
 //////
 //////
@@ -129,6 +162,8 @@ pub fn dns_resolution() -> String {
     let mut avrg_average: f32 = 0.0;
     let mut avrg_slow: f32 = 0.0;
     let mut avrg_deviation: f32 = 0.0;
+    let mut total_packets_transmitted: u32 = 0;
+    let mut total_packet_recieved: u32 = 0;
     let mut j = 0;
 
     for domain in PING_ROUTES {
@@ -140,6 +175,8 @@ pub fn dns_resolution() -> String {
         let mut average: f32 = 0.0;
         let mut slow: f32 = 0.0;
         let mut deviation: f32 = 0.0;
+        let mut packets_transmitted: u32 = 0;
+        let mut packets_recieve: u32 = 0;
         let mut i = 0;
 
         // looping trough dns, ipv4 and ipv6
@@ -155,8 +192,15 @@ pub fn dns_resolution() -> String {
             }
 
             let extraction_result = ping_extraction(ping_result);
+            let packets = packet_analizer(&extraction_result[0]);
+            let (pt, pr) = packets;
+            packets_transmitted += pt;
+            packets_recieve += pr;
+            let pl = calculate_packets_loss(pt, pr);
+            // Info of time per ping
             let ping_values = extraction_ping_values(&extraction_result[1]);
             // println!("Pig values: {:?}", ping_values);
+            // TODO: Move to a new func
             fast += clean_value(ping_values[0]);
             avrg_fast += fast;
             average += clean_value(ping_values[1]);
@@ -166,28 +210,44 @@ pub fn dns_resolution() -> String {
             deviation += clean_value(ping_values[3]);
             avrg_deviation += deviation;
             let statistic_result: String = extrac_ping_statistics(ping_values);
+            let packets_str = format!(
+                "Transmitted {} - Packets Recieve {} - Packets Loss {}%\n",
+                pt, pr, pl
+            );
+            result += &packets_str;
             result += &(statistic_result + "\n --------- \n");
             i += 1;
             j += 1;
         }
+        let packets_lossed = calculate_packets_loss(packets_transmitted, packets_recieve);
         let string = format!(
-            "Averages for {}\nAvrg Most Fast = {}\nAvrg Average = {}\nAvrg Slow = {}\nAvrg Mean Deviation = {}",
+            "Averages for {}\nAvrg Most Fast = {}\nAvrg Average = {}\nAvrg Slow = {}\nAvrg Mean Deviation = {}\nAvg Packets Transmitted {} - Avg Packets Recieve {} - Avg Packets Loss {}%",
             domain.0,
             (fast / i as f32),
             (average / i as f32),
             (slow / i as f32),
-            (deviation / i as f32)
+            (deviation / i as f32),
+            packets_transmitted,
+            packets_recieve,
+            packets_lossed
         );
         result.push_str(&string);
-        result += "\n --------- \n\n";
+        result += "\n --------- \n --------- \n\n";
+        total_packets_transmitted += packets_transmitted;
+        total_packet_recieved += packets_recieve;
     }
 
+    let total_pl = calculate_packets_loss(total_packets_transmitted, total_packet_recieved);
+
     let string = format!(
-        "Total averages\nAvrg Most Fast = {}\nAvrg Average = {}\nAvrg Slow = {}\nAvrg Mean Deviation = {}",
+        "Total averages\nAvrg Most Fast = {}\nAvrg Average = {}\nAvrg Slow = {}\nAvrg Mean Deviation = {}\nTotal Packets Transmitted {} - Total Packets Recieved {} - Total Packets Loss {}%",
         (avrg_fast / j as f32),
         (avrg_average / j as f32),
         (avrg_slow / j as f32),
-        (avrg_deviation / j as f32)
+        (avrg_deviation / j as f32),
+        total_packets_transmitted,
+        total_packet_recieved,
+        total_pl
     );
     result.push_str(&string);
     result += "\n --------- \n\n";
