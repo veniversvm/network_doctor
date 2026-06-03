@@ -1,16 +1,29 @@
+/// commands module
+/// This module purporse is to execute the ping command to test the internet
+/// connection of the system.
+/// For this purpose a ping is done to IPV4, DNS and domain, IPV6 can't be
+/// done at the momment because of lack of IPV6 conection of my current ISP.
+/// The domains teste are: Google, Cloudflare, Quad9 and Cisco.
+/// Finally the process must return a detailed statistic of the pings realized.
+/// PENDING: multithreding execution
 use std::process::Command;
 use std::str;
 
+/// The fowllowing types are use to mantain some order in the ping targets.
 type IPV4<'a> = &'a str;
 type IPV6<'a> = &'a str;
 type DNS<'a> = &'a str;
+// DomainName is the simple popular/comercial name of the ping target, ex: Google.
 type DomainName<'a> = &'a str;
+// IPDir stands for IP Direction, is a tuple of ping targets
 type IPDir<'a> = (DomainName<'a>, IPV4<'a>, IPV6<'a>, DNS<'a>);
 
 //////
 //////
 //////
 
+/// PING_ROUTES is a static array of the Domains to be tested and their IP targets.
+/// Can be expanded but I belive that 4 domains are more that enough.
 const PING_ROUTES: [IPDir; 4] = [
     ("Google", "8.8.8.8", "2001:4860:4860::8888", "google.com"),
     (
@@ -32,6 +45,15 @@ const PING_ROUTES: [IPDir; 4] = [
 //////
 //////
 
+/// ping_command executes the 'ping' and collects the result to be returned.
+///
+/// # paramters
+/// target_os: linux, windows or mac. This will be elminated.
+/// destination: target of the ping command.
+///
+/// The function will try to do the ping and recieve four (4) responses to be collected.
+/// In the future instead of the target os, the proper macro will be used to compiled the project
+/// in the specific target os.
 pub fn ping_command(target_os: String, destination: String) -> String {
     let ping = if target_os == "linux" {
         println!("\rping target: {destination}");
@@ -45,6 +67,7 @@ pub fn ping_command(target_os: String, destination: String) -> String {
             .output()
             .expect("failed process")
     } else {
+        // To be eliminated
         println!("not linux");
         Command::new("sh")
             .arg("-c")
@@ -53,10 +76,11 @@ pub fn ping_command(target_os: String, destination: String) -> String {
             .expect("Failed echo command")
     };
 
+    // Command collect the result in Output struct define in std::process::Command.
+    // Need to be tranformed in string slice to the transform in String.
     let res = str::from_utf8(&ping.stdout).expect("invalid utf-8");
 
-    //println!("{}", res);
-
+    // return String
     res.to_string()
 }
 
@@ -66,6 +90,8 @@ pub fn ping_command(target_os: String, destination: String) -> String {
 
 /// ping_straction returns a Vec[String] of the data
 /// obtained from the ping command.
+/// Loops trough the result and return a line like this:
+/// 'rtt min/avg/max/mdev = 45.139/47.724/50.190/2.076 ms'
 ///
 /// For the moment only works with linux ping command.
 pub fn ping_extraction(statistics: String) -> Vec<String> {
@@ -122,6 +148,15 @@ pub fn clean_value(value: &str) -> f32 {
 //////
 //////
 
+/// packets_transmitted recieves the fowllowing line:
+/// 5 packets transmitted, 5 received, 0% packet loss, time 4004ms
+/// returns (u32, u32)
+///
+/// In this case we want the first and second numeric value and transform
+/// into integer values.
+/// The first value in the tuple retuner are the packet transmitted or send
+/// and the second are the recieved as response.
+///
 pub fn packet_analizer(packet_line: &str) -> (u32, u32) {
     let value: Vec<_> = packet_line.split(",").collect();
     //println!("{:?}", value);
@@ -143,6 +178,10 @@ pub fn packet_analizer(packet_line: &str) -> (u32, u32) {
 
     (pt, pr)
 }
+
+///////
+//////
+//////
 
 fn calculate_packets_loss(packets_transmitted: u32, packets_recieved: u32) -> f32 {
     if packets_transmitted == 0 {
@@ -166,6 +205,7 @@ pub fn dns_resolution() -> String {
     let mut total_packet_recieved: u32 = 0;
     let mut j = 0;
 
+    // Loop in every domain tuplet (Google, Cisco, etc...).
     for domain in PING_ROUTES {
         println!("{}", domain.0);
 
@@ -184,7 +224,9 @@ pub fn dns_resolution() -> String {
         for dns_or_ip in [domain.1, domain.2, domain.3] {
             let ping_result = ping_command(std::env::consts::OS.to_string(), dns_or_ip.to_string());
 
-            // check if ping result
+            // check if ping result was succefull, in case of failed ping the
+            // proper message is append to the result a jump to the next
+            // iteration.
             if ping_result.is_empty() || ping_result.contains("unreachable") {
                 result +=
                     &(dns_or_ip.to_string() + " for " + domain.0 + " fail" + "\n --------- \n");
