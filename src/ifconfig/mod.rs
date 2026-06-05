@@ -18,11 +18,28 @@ pub fn ifconfig() {
 
     let split_result: Vec<_> = result_to_string.split("\n\n").collect();
 
+    let mut ip_results: Vec<String> = Vec::new();
     for element in split_result.iter() {
         if element.contains("RUNNING") && !element.contains("127.0.0.1") {
-            println!("{}", element);
+            let ip: String = return_ip(element);
+            if ip.chars().count() > 0 {
+                ip_results.push(ip);
+            }
         }
     }
 
-    //println!("{:?}", split_result);
+    println!("{:?}", ip_results);
+}
+
+/// return_ip return the inet value
+pub fn return_ip(data: &str) -> String {
+    let split_data: Vec<_> = data.split("\n").collect();
+
+    for element in split_data.iter() {
+        if element.contains("inet") {
+            let line: Vec<_> = element.trim().split(" ").collect();
+            return line[1].to_string();
+        }
+    }
+    "no inet value founded :c".to_string()
 }

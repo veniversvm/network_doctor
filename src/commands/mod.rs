@@ -109,7 +109,18 @@ pub fn ping_extraction(statistics: String) -> Vec<String> {
 //////
 //////
 
-pub fn extrac_ping_statistics(ping_values: Vec<&str>) -> String {
+/// extract_ping_statistics thake a Vector of floats inf string
+/// like the one retuned by extraction_ping_values
+/// ["34.677", "36.169", "37.476", "0.994 ms"]
+/// and returns a single string in a easy to read format onlythe results
+/// obtained by the ping.
+/// Example:
+/// " Most Fast - 34.677
+///   Average - 36.169
+///   Most Slow - 37.476
+///   Mean Deaviation - 0.994 ms"
+pub fn extract_ping_statistics(ping_values: Vec<&str>) -> String {
+    // We take advantage of the positional distribution of the values.
     let keys: [&str; 4] = ["Most Fast", "Average", "Most Slow", "Mean Deaviation"];
     let mut result: String = "Ping results:\n".to_string();
 
@@ -126,6 +137,10 @@ pub fn extrac_ping_statistics(ping_values: Vec<&str>) -> String {
 //////
 //////
 
+/// extraction_ping_values take a string slice like this
+/// 'rtt min/avg/max/mdev = 34.677/36.169/37.476/0.994 ms'
+/// and return a Vector of String like this:
+/// ["34.677", "36.169", "37.476", "0.994 ms"]
 pub fn extraction_ping_values(rtt_line: &str) -> Vec<&str> {
     let line_split: Vec<_> = rtt_line.split("=").collect();
 
@@ -136,7 +151,12 @@ pub fn extraction_ping_values(rtt_line: &str) -> Vec<&str> {
 //////
 //////
 
+/// clean_value recieves a float numeric string slice and
+/// returns a f32 value.
+///
+/// Is used to process the obtained values from the ping command.
 pub fn clean_value(value: &str) -> f32 {
+    // clean the string from description
     let v = value.replace("ms", "").replace("pipe 2", "");
 
     //println!("converting {value} *{v}*");
@@ -183,6 +203,12 @@ pub fn packet_analizer(packet_line: &str) -> (u32, u32) {
 //////
 //////
 
+/// calculate_packets_loss is used to accurate calculate the
+/// loss of packets in different levels of acuumulation, to be
+/// precise, the indivual loss of every taget, the accumulate loss
+/// of every domain and the total accumalte loss of all packages.
+///
+/// Recieves two u32 values a return a float32
 fn calculate_packets_loss(packets_transmitted: u32, packets_recieved: u32) -> f32 {
     if packets_transmitted == 0 {
         return 0.0;
@@ -251,7 +277,7 @@ pub fn dns_resolution() -> String {
             avrg_slow += slow;
             deviation += clean_value(ping_values[3]);
             avrg_deviation += deviation;
-            let statistic_result: String = extrac_ping_statistics(ping_values);
+            let statistic_result: String = extract_ping_statistics(ping_values);
             let packets_str = format!(
                 "Transmitted {} - Packets Recieve {} - Packets Loss {}%\n",
                 pt, pr, pl
